@@ -1,0 +1,12 @@
+*.pyc
+*.DS_Store
+venv/
+.idea/
+.DS_Store
+.Rproj.user
+*.vscode*
+.ipynb_checkpoints/*
+.ipynb_checkpoints/*
+__pycache__
+temp.py
+temp.sh
