@@ -33,7 +33,10 @@ vects_df = pd.read_csv(
 bigram_df = pd.read_csv("data/bigram_counts_data.csv", index_col=0)
 
 filmweb_df = pd.read_csv('data/df_filmweb.csv')
-imdb_df = pd.read_csv('data/df_imdb.csv').head(1000)
+imdb_df = pd.read_csv('data/df_imdb.csv').head(10000)
+
+filmweb_df['description_length'] = filmweb_df['description'].str.len()
+imdb_df['description_length'] = imdb_df['description'].str.len()
 
 DATA_PATH = pathlib.Path(__file__).parent.resolve()
 EXTERNAL_STYLESHEETS = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -196,7 +199,7 @@ def make_marks_time_slider(mini, maxi):
     current = start
     while current <= end:
         current_str = int(current.timestamp())
-        print(current.year)
+        # print(current.year)
         if current.year % 8 == 0:
             ret[current_str] = {
                 "label": str(current.year),
@@ -226,8 +229,8 @@ def make_marks_time_slider(mini, maxi):
         #     pass
         current += step
     # print(ret)
-    print('O RETY KOTLETY')
-    print(ret)
+    # print('O RETY KOTLETY')
+    # print(ret)
     return ret
 
 
@@ -251,33 +254,60 @@ def make_options_bank_drop(values):
     return ret
 
 
-def populate_lda_scatter(tsne_df, df_top3words, df_dominant_topic):
+def populate_lda_scatter(selected_bank):
     """Calculates LDA and returns figure data you can jam into a dcc.Graph()"""
     mycolors = np.array([color for name, color in mcolors.TABLEAU_COLORS.items()])
-
+    print('MYCOLORS')
+    print(mycolors)
     # for each topic we create a separate trace
     traces = []
-    for topic_id in df_top3words["topic_id"]:
-        tsne_df_f = tsne_df[tsne_df.topic_num == topic_id]
-        cluster_name = ", ".join(
-            df_top3words[df_top3words["topic_id"] == topic_id]["words"].to_list()
-        )
+    # for topic_id in df_top3words["topic_id"]:
+    if selected_bank == 'Filmweb':
+        local_df = filmweb_df[filmweb_df['year'].notna()]
+    elif selected_bank == 'IMDB':
+        local_df = imdb_df[imdb_df['year'].notna()]
+    print('SELECTE$D BANC', selected_bank)
+    for genre in local_df['genre'].unique():
+        filmweb_df_genre = local_df[local_df['genre'] == genre]
+        titles = filmweb_df_genre['title'].tolist()
+        # description_lengths = filmweb_df_genre['description_length'].tolist()
+        description_lengths = filmweb_df_genre['description_length'] + np.random.uniform(-0.4, 0.4, len(filmweb_df_genre))
+        # years = filmweb_df_genre['year'].tolist()
+        years = filmweb_df_genre['year'] + np.random.uniform(-0.4, 0.4, len(filmweb_df_genre))
+    # for topic_id in ['comedy']:
+        # tsne_df_f = tsne_df[tsne_df.topic_num == topic_id]
+        # cluster_name = ", ".join(
+        #     df_top3words[df_top3words["topic_id"] == topic_id]["words"].to_list()
+        # )
+        # for 
+        genres = []
+        for i in range(len(titles)):
+            genres.append(genre)
         trace = go.Scatter(
-            name=cluster_name,
-            x=tsne_df_f["tsne_x"],
-            y=tsne_df_f["tsne_y"],
+            name=genre,
+            # x=tsne_df_f["tsne_x"],
+            # y=tsne_df_f["tsne_y"],
+            # x=[4,2],
+            x=years,
+            y=description_lengths,
             mode="markers",
-            hovertext=tsne_df_f["doc_num"],
+            hovertext=titles,
             marker=dict(
                 size=6,
-                color=mycolors[tsne_df_f["topic_num"]],  # set color equal to a variable
+                # color=mycolors[tsne_df_f["topic_num"]],  # set color equal to a variable
                 colorscale="Viridis",
                 showscale=False,
+                # line=dict(width=0.5, color="DarkSlateGrey"),
+                # jitter=0.5,
+                # jitter=dict(
+                #     x=0.3,
+                #     y=0.3
+                # )
             ),
         )
         traces.append(trace)
 
-    layout = go.Layout({"title": "Topic analysis using LDA"})
+    layout = go.Layout({"title": "Release year, genre and description length"})
 
     return {"data": traces, "layout": layout}
 
@@ -508,7 +538,7 @@ LDA_TABLE = html.Div(
 )
 
 LDA_PLOTS = [
-    dbc.CardHeader(html.H5("Topic modelling using LDA")),
+    dbc.CardHeader(html.H5("All movies scatter plot")),
     dbc.Alert(
         "Not enough data to render LDA plots, please adjust the filters",
         id="no-data-alert-lda",
@@ -517,14 +547,17 @@ LDA_PLOTS = [
     ),
     dbc.CardBody(
         [
+            dcc.Dropdown(
+                id="bank-drop2", clearable=False, style={"marginBottom": 50, "font-size": 12}, value="IMDB",
+            ),
             html.P(
-                "Click on a complaint point in the scatter to explore that specific complaint",
+                "Click on a point in the scatter to explore that specific movie",
                 className="mb-0",
             ),
-            html.P(
-                "(not affected by sample size or time frame selection)",
-                style={"fontSize": 10, "font-weight": "lighter"},
-            ),
+            # html.P(
+            #     "(not affected by sample size or time frame selection)",
+            #     style={"fontSize": 10, "font-weight": "lighter"},
+            # ),
             LDA_PLOT,
             html.Hr(),
             LDA_TABLE,
@@ -700,28 +733,25 @@ TOP_BIGRAM_COMPS = [
                                 [
                                     dcc.Dropdown(
                                         id="bigrams-comp_1",
-                                        options=[
-                                            {"label": i, "value": i}
-                                            for i in bigram_df.company.unique()
-                                        ],
-                                        value="EQUIFAX, INC.",
+                                        options=[{"label": "Mean description length", "value": "mean_description"}, {"label": "Count movies", "value": "count_movies"}],
+                                        value="count_movies",
                                     )
                                 ],
                                 md=6,
                             ),
-                            dbc.Col(
-                                [
-                                    dcc.Dropdown(
-                                        id="bigrams-comp_2",
-                                        options=[
-                                            {"label": i, "value": i}
-                                            for i in bigram_df.company.unique()
-                                        ],
-                                        value="TRANSUNION INTERMEDIATE HOLDINGS, INC.",
-                                    )
-                                ],
-                                md=6,
-                            ),
+                            # dbc.Col(
+                            #     [
+                            #         dcc.Dropdown(
+                            #             id="bigrams-comp_2",
+                            #             options=[
+                            #                 {"label": i, "value": i}
+                            #                 for i in bigram_df.company.unique()
+                            #             ],
+                            #             value="TRANSUNION INTERMEDIATE HOLDINGS, INC.",
+                            #         )
+                            #     ],
+                            #     md=6,
+                            # ),
                         ]
                     ),
                     dcc.Graph(id="bigrams-comps"),
@@ -791,24 +821,60 @@ def populate_bigram_scatter(perplexity):
 
 @app.callback(
     Output("bigrams-comps", "figure"),
-    [Input("bigrams-comp_1", "value"), Input("bigrams-comp_2", "value")],
+    [Input("bigrams-comp_1", "value")],
 )
-def comp_bigram_comparisons(comp_first, comp_second):
-    comp_list = [comp_first, comp_second]
-    temp_df = bigram_df[bigram_df.company.isin(comp_list)]
-    temp_df.loc[temp_df.company == comp_list[-1], "value"] = -temp_df[
-        temp_df.company == comp_list[-1]
-    ].value.values
+def comp_bigram_comparisons(comp_first):
+    # comp_list = [comp_first, comp_second]
+    # temp_df = bigram_df[bigram_df.company.isin(comp_list)]
+    # temp_df.loc[temp_df.company == comp_list[-1], "value"] = -temp_df[
+    #     temp_df.company == comp_list[-1]
+    # ].value.values
 
+
+    print('COMP BIGRAM COMPARISONS')
+    # print(temp_df)
+    # print(temp_df.columns)
+    # change df_imdb to dataframe with only genres names and their mean description length
+    description_length = imdb_df.groupby('genre')['description_length'].mean().reset_index()
+    # change df_imdb to dataframe with only genres names and their sum of movies
+    title = imdb_df.groupby('genre')['title'].count().reset_index()
+    # merge description_length and title
+    df_imdb_stats = pd.merge(description_length, title, on='genre')
+    # add column dataset with imdb
+    df_imdb_stats['dataset'] = 'imdb'
+
+    # change df_imdb to dataframe with only genres names and their mean description length
+    description_length = (filmweb_df.groupby('genre')['description_length'].mean() * (-1)).reset_index()
+    # change df_imdb to dataframe with only genres names and their sum of movies
+    title = (filmweb_df.groupby('genre')['title'].count() * (-1)).reset_index()
+    # merge description_length and title
+    df_filmweb_stats = pd.merge(description_length, title, on='genre')
+    # add column dataset with imdb
+    df_filmweb_stats['dataset'] = 'filmweb'
+
+    # merge df_imdb_stats and df_filmweb_stats
+    df_stats = pd.concat([df_imdb_stats, df_filmweb_stats])
+
+    genres = df_stats.groupby('genre')['dataset'].count().reset_index()
+    genres = genres[genres['dataset'] == 2]['genre'].tolist()
+    df_stats = df_stats[df_stats['genre'].isin(genres)]
+    #df_stats
+
+    if comp_first == 'mean_description':
+        title = 'Mean description length'
+        y = 'description_length'
+    elif comp_first == 'count_movies':
+        title = 'Number of movies'
+        y = 'title'
     fig = px.bar(
-        temp_df,
-        title="Comparison: " + comp_first + " | " + comp_second,
-        x="ngram",
-        y="value",
-        color="company",
+        df_stats,
+        title=title,
+        x="genre",
+        y=y,
+        color="dataset",
         template="plotly_white",
         color_discrete_sequence=px.colors.qualitative.Bold,
-        labels={"company": "Company:", "ngram": "N-Gram"},
+        labels={"dataset": "Dataset:", "genre": "Genre"},
         hover_data="",
     )
     fig.update_layout(legend=dict(x=0.1, y=1.1), legend_orientation="h")
@@ -872,6 +938,23 @@ def populate_bank_dropdown(time_values):
     return [{"label": "IMDB", "value": "IMDB"}, {"label": "Filmweb", "value": "Filmweb"}]
     # return make_options_bank_drop(bank_names)
 
+@app.callback(
+    Output("bank-drop2", "options"),
+    [Input("time-window-slider", "value")],
+)
+def populate_bank_dropdown(time_values):
+    """ TODO """
+    print("bank-drop: TODO USE THE TIME VALUES AND N-SLIDER TO LIMIT THE DATASET")
+    if time_values is not None:
+        pass
+    # n_value += 1
+    bank_names, counts = get_complaint_count_by_company(GLOBAL_DF)
+    # print(bank_names,  counts)
+    counts.append(1)
+    # print('HOHOHO')
+    # print(make_options_bank_drop(bank_names))
+    return [{"label": "IMDB", "value": "IMDB"}, {"label": "Filmweb", "value": "Filmweb"}]
+
 
 @app.callback(
     [Output("bank-sample", "figure"), Output("no-data-alert-bank", "style")],
@@ -934,25 +1017,49 @@ def update_bank_sample_plot(time_values, bank_drop):
         Output("tsne-lda", "figure"),
         Output("no-data-alert-lda", "style"),
     ],
-    [Input("bank-drop", "value"), Input("time-window-slider", "value")],
+    [Input("bank-drop2", "value"), Input("time-window-slider", "value")],
 )
 def update_lda_table(selected_bank, time_values):
     """ Update LDA table and scatter plot based on precomputed data """
+    # selected_bank = 'EQUIFAX, INC.'
+    # if selected_bank in PRECOMPUTED_LDA:
+    #     df_dominant_topic = pd.read_json(
+    #         PRECOMPUTED_LDA[selected_bank]["df_dominant_topic"]
+    #     )
+    #     tsne_df = pd.read_json(PRECOMPUTED_LDA[selected_bank]["tsne_df"])
+    #     df_top3words = pd.read_json(PRECOMPUTED_LDA[selected_bank]["df_top3words"])
+    # else:
+    #     return [[], [], {}, {}]
 
-    if selected_bank in PRECOMPUTED_LDA:
-        df_dominant_topic = pd.read_json(
-            PRECOMPUTED_LDA[selected_bank]["df_dominant_topic"]
-        )
-        tsne_df = pd.read_json(PRECOMPUTED_LDA[selected_bank]["tsne_df"])
-        df_top3words = pd.read_json(PRECOMPUTED_LDA[selected_bank]["df_top3words"])
-    else:
-        return [[], [], {}, {}]
+    lda_scatter_figure = populate_lda_scatter(selected_bank)
 
-    lda_scatter_figure = populate_lda_scatter(tsne_df, df_top3words, df_dominant_topic)
+    # columns = [{"name": i, "id": i} for i in df_dominant_topic.columns]
+    # data = df_dominant_topic.to_dict("records")
 
-    columns = [{"name": i, "id": i} for i in df_dominant_topic.columns]
-    data = df_dominant_topic.to_dict("records")
+    # print('LDA TABLE')
+    # print(len(data))
+    # print(data[0])
+    # print('===========')
+    # for d in data[0]:
+    #     print(d)
+    # print('xxxxxxxxxxxxxxxx')
+    # # for d in data[0]:
+    #     print(d, data[0][d])
+    # print(columns)
+    columns = [{'name': 'title', 'id': 'title'}, {'name': 'year', 'id': 'year'}, {'name': 'description', 'id': 'description'}, {'name': 'description_length', 'id': 'description_length'}, {'name': 'genre', 'id': 'genre'}]
 
+    if selected_bank == 'Filmweb':
+        local_df = filmweb_df[filmweb_df['year'].notna()]
+    elif selected_bank == 'IMDB':
+        local_df = imdb_df[imdb_df['year'].notna()]
+
+    data = []
+    for index, row in local_df.iterrows():
+        item = {'title': row['title'], 'year': row['year'], 'description': row['description'], 'description_length': row['description_length'], 'genre': row['genre']}
+        data.append(item)
+    print('LEN DATA', len(data))
+    # data = [{'title': 'film1', 'Dominant_Topic': 'comedy', 'Keywords': 'hmm', 'Text': 'a b c d', 'Date': '2016-06-04 00:00:00'},
+    # {'title': 'film2', 'Dominant_Topic': 'comedy', 'Topic_Perc_Contrib': 1.3, 'Keywords': 'hmm2', 'Text': 'a b c d 2', 'Date': '2017-06-04 00:00:00'}]
     return (data, columns, lda_scatter_figure, {"display": "none"})
 
 
@@ -1006,16 +1113,19 @@ def filter_table_on_scatter_click(tsne_click, current_filter):
     """ TODO """
     if tsne_click is not None:
         selected_complaint = tsne_click["points"][0]["hovertext"]
+        print('AAAAAAAAAAAAAAAAA')
+        print(selected_complaint)
+        print(current_filter)
         if current_filter != "":
             filter_query = (
-                "({Document_No} eq "
+                "({title} eq "
                 + str(selected_complaint)
                 + ") || ("
                 + current_filter
                 + ")"
             )
         else:
-            filter_query = "{Document_No} eq " + str(selected_complaint)
+            filter_query = "{title} eq " + str(selected_complaint)
         print("current_filter", current_filter)
         return (filter_query, {"display": "block"})
     return ["", {"display": "none"}]
