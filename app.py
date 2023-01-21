@@ -33,7 +33,7 @@ vects_df = pd.read_csv(
 bigram_df = pd.read_csv("data/bigram_counts_data.csv", index_col=0)
 
 filmweb_df = pd.read_csv('data/df_filmweb.csv')
-imdb_df = pd.read_csv('data/df_imdb.csv').head(10000)
+imdb_df = pd.read_csv('data/df_imdb.csv').sample(10000)
 
 filmweb_df['description_length'] = filmweb_df['description'].str.len()
 imdb_df['description_length'] = imdb_df['description'].str.len()
@@ -70,7 +70,9 @@ ADDITIONAL_STOPWORDS = [
     "account",
     "się",
     "na",
-    "jego"
+    "jego", "nbsp", "jest", "po", "przez", "jej", "który", "nie", "aby", "od", "go", "jednak", "Gdy", "ich", "przed",
+    "że", "za", "która", "ma", "dla", "kiedy", "oraz", "są", "do", "tego", "także", "tak", "jest", "był", "była", "było", "ją", "jako",
+    "ze"
 ]
 for stopword in ADDITIONAL_STOPWORDS:
     STOPWORDS.add(stopword)
@@ -640,7 +642,7 @@ WORDCLOUD_PLOTS = [
                                     {"label": i, "value": i}
                                     for i in filmweb_df.genre.unique()
                                 ] + [{"label": "ALL", "value": "ALL"}],
-                                value="ALL",
+                                value="comedy",
                             )
                         ],
                         md=6,
