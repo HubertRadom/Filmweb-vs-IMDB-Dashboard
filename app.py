@@ -256,7 +256,7 @@ def make_options_bank_drop(values):
     return ret
 
 
-def populate_lda_scatter(selected_bank):
+def populate_lda_scatter(selected_bank, plot_option):
     """Calculates LDA and returns figure data you can jam into a dcc.Graph()"""
     mycolors = np.array([color for name, color in mcolors.TABLEAU_COLORS.items()])
     print('MYCOLORS')
@@ -272,28 +272,47 @@ def populate_lda_scatter(selected_bank):
     for genre in local_df['genre'].unique():
         filmweb_df_genre = local_df[local_df['genre'] == genre]
         titles = filmweb_df_genre['title'].tolist()
+
+        genres = []
+        for i in range(len(titles)):
+            genres.append(genre)
+
         # description_lengths = filmweb_df_genre['description_length'].tolist()
-        description_lengths = filmweb_df_genre['description_length'] + np.random.uniform(-0.4, 0.4, len(filmweb_df_genre))
-        # years = filmweb_df_genre['year'].tolist()
-        years = filmweb_df_genre['year'] + np.random.uniform(-0.4, 0.4, len(filmweb_df_genre))
+        description_lengths = filmweb_df_genre['description_length'] + np.random.uniform(-0.2, 0.2, len(filmweb_df_genre))
+
+        if plot_option == 'mean_description':
+            years = filmweb_df_genre['year'] + np.random.uniform(-0.2, 0.2, len(filmweb_df_genre))
+            description_lengths = filmweb_df_genre['description_length'] + np.random.uniform(-0.2, 0.2, len(filmweb_df_genre))
+            x = years
+            y = description_lengths
+            hovers = titles
+
+        elif plot_option == 'count_movies':
+            # x is years and y is number of movies
+            another_local_df = filmweb_df_genre.groupby('year')['title'].count().reset_index()
+
+            years = another_local_df['year'].tolist()
+            title = another_local_df['title'].tolist()
+            x = years
+            y = title
+            hovers = genres
+
     # for topic_id in ['comedy']:
         # tsne_df_f = tsne_df[tsne_df.topic_num == topic_id]
         # cluster_name = ", ".join(
         #     df_top3words[df_top3words["topic_id"] == topic_id]["words"].to_list()
         # )
         # for 
-        genres = []
-        for i in range(len(titles)):
-            genres.append(genre)
+
         trace = go.Scatter(
             name=genre,
             # x=tsne_df_f["tsne_x"],
             # y=tsne_df_f["tsne_y"],
             # x=[4,2],
-            x=years,
-            y=description_lengths,
+            x=x,
+            y=y,
             mode="markers",
-            hovertext=titles,
+            hovertext=hovers,
             marker=dict(
                 size=6,
                 # color=mycolors[tsne_df_f["topic_num"]],  # set color equal to a variable
@@ -552,10 +571,15 @@ LDA_PLOTS = [
             dcc.Dropdown(
                 id="bank-drop2", clearable=False, style={"marginBottom": 50, "font-size": 12}, value="IMDB",
             ),
-            html.P(
-                "Click on a point in the scatter to explore that specific movie",
-                className="mb-0",
+            dcc.Dropdown(
+                id="bank-drop3",
+                options=[{"label": "Description length", "value": "mean_description"}, {"label": "Count movies", "value": "count_movies"}],
+                value="count_movies",
             ),
+            # html.P(
+            #     "Click on a point in the scatter to explore that specific movie",
+            #     className="mb-0",
+            # ),
             # html.P(
             #     "(not affected by sample size or time frame selection)",
             #     style={"fontSize": 10, "font-weight": "lighter"},
@@ -1019,9 +1043,9 @@ def update_bank_sample_plot(time_values, bank_drop):
         Output("tsne-lda", "figure"),
         Output("no-data-alert-lda", "style"),
     ],
-    [Input("bank-drop2", "value"), Input("time-window-slider", "value")],
+    [Input("bank-drop2", "value"), Input("bank-drop3", "value"), Input("time-window-slider", "value")],
 )
-def update_lda_table(selected_bank, time_values):
+def update_lda_table(selected_bank, plot_option, time_values):
     """ Update LDA table and scatter plot based on precomputed data """
     # selected_bank = 'EQUIFAX, INC.'
     # if selected_bank in PRECOMPUTED_LDA:
@@ -1033,7 +1057,7 @@ def update_lda_table(selected_bank, time_values):
     # else:
     #     return [[], [], {}, {}]
 
-    lda_scatter_figure = populate_lda_scatter(selected_bank)
+    lda_scatter_figure = populate_lda_scatter(selected_bank, plot_option)
 
     # columns = [{"name": i, "id": i} for i in df_dominant_topic.columns]
     # data = df_dominant_topic.to_dict("records")
