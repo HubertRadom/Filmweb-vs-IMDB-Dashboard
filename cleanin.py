@@ -77,6 +77,10 @@ def down_sample_both_dfs(df1: pd.DataFrame, df2:pd.DataFrame, n_min:int=1, n_max
     
     for key, value in mins_for_every_genre.items():
 #         print(groupped_df1[key].sample(n=value))
-        df1_new_beggining = pd.concat([df1_new_beggining, df1[df1["genre"] == key].sample(n=min(value, n_max), random_state=42)], axis=0)
-        df2_new_beggining = pd.concat([df2_new_beggining, df2[df2["genre"] == key].sample(n=min(value, n_max), random_state=42)], axis=0)
+        if n_max == np.inf:
+            df1_new_beggining = pd.concat([df1_new_beggining, df1[df1["genre"] == key].sample(frac=1., random_state=42)], axis=0)
+            df2_new_beggining = pd.concat([df2_new_beggining, df2[df2["genre"] == key].sample(frac=1., random_state=42)], axis=0)
+        else:
+            df1_new_beggining = pd.concat([df1_new_beggining, df1[df1["genre"] == key].sample(n=min(value, n_max), random_state=42)], axis=0)
+            df2_new_beggining = pd.concat([df2_new_beggining, df2[df2["genre"] == key].sample(n=min(value, n_max), random_state=42)], axis=0)
     return df1_new_beggining.reset_index(drop=True), df2_new_beggining.reset_index(drop=True)
