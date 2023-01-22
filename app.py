@@ -32,8 +32,8 @@ vects_df = pd.read_csv(
 )  # Simple averages of GLoVe 50d vectors
 bigram_df = pd.read_csv("data/bigram_counts_data.csv", index_col=0)
 
-filmweb_df = pd.read_csv('data/df_filmweb.csv')
-imdb_df = pd.read_csv('data/df_imdb.csv').sample(10000)
+filmweb_df = pd.read_csv('data/df_filmweb.csv').sample(100)
+imdb_df = pd.read_csv('data/df_imdb.csv').sample(100)
 
 filmweb_df['description_length'] = filmweb_df['description'].str.len()
 imdb_df['description_length'] = imdb_df['description'].str.len()
@@ -468,31 +468,6 @@ LEFT_COLUMN = dbc.Jumbotron(
     [
         html.H4(children="Select dataset and time frame", className="display-5"),
         html.Hr(className="my-2"),
-        # html.Label("Select percentage of dataset", className="lead"),
-        # html.P(
-        #     "(Lower is faster. Higher is more precise)",
-        #     style={"fontSize": 10, "font-weight": "lighter"},
-        # ),
-        # dcc.Slider(
-        #     id="n-selection-slider",
-        #     min=1,
-        #     max=100,
-        #     step=1,
-        #     marks={
-        #         0: "0%",
-        #         10: "",
-        #         20: "20%",
-        #         30: "",
-        #         40: "40%",
-        #         50: "",
-        #         60: "60%",
-        #         70: "",
-        #         80: "80%",
-        #         90: "",
-        #         100: "100%",
-        #     },
-        #     value=20,
-        # ),
         html.Label("Select dataset", style={"marginTop": 50}, className="lead"),
         html.P(
             "(You can use the dropdown or click the barchart on the right)",
@@ -503,6 +478,35 @@ LEFT_COLUMN = dbc.Jumbotron(
         ),
         html.Label("Select time frame", className="lead"),
         html.Div(dcc.RangeSlider(id="time-window-slider"), style={"marginBottom": 50, 'width': '400px', 'marginLeft':0}),
+        # html.P(
+        #     "(You can define the time frame down to month granularity)",
+        #     style={"fontSize": 10, "font-weight": "lighter"},
+        # ),
+    ]
+)
+
+LEFT_COLUMN2 = dbc.Jumbotron(
+    [
+        html.H4(children="Select dataset and time frame", className="display-5"),
+        html.Hr(className="my-2"),
+        html.Label("Select dataset", style={"marginTop": 50}, className="lead"),
+        html.P(
+            "(You can use the dropdown or click the barchart on the right)",
+            style={"fontSize": 10, "font-weight": "lighter"},
+        ),
+        dcc.Dropdown(
+            id="bank-drop22", clearable=False, style={"marginBottom": 50, "font-size": 12}, value="imdb"
+        ),
+        html.Label("Select genre", style={"marginTop": 50}, className="lead"),
+        html.P(
+            "(You can use the dropdown or click the barchart on the right)",
+            style={"fontSize": 10, "font-weight": "lighter"},
+        ),
+        dcc.Dropdown(
+            id="bank-drop23", clearable=False, style={"marginBottom": 50, "font-size": 12}, value='comedy'
+        ),
+        # html.Label("Select eee", className="lead"),
+        html.Div(dcc.RangeSlider(id="time-window-slider22"), style={"display":"none", "marginBottom": 50, 'width': '400px', 'marginLeft':0}),
         # html.P(
         #     "(You can define the time frame down to month granularity)",
         #     style={"fontSize": 10, "font-weight": "lighter"},
@@ -699,6 +703,28 @@ TOP_BANKS_PLOT = [
     ),
 ]
 
+TOP_BANKS_PLOT2 = [
+    dbc.CardHeader(html.H5("Top 10 banks by number of complaints")),
+    dbc.CardBody(
+        [
+            dcc.Loading(
+                id="loading-banks-hist22",
+                children=[
+                    dbc.Alert(
+                        "Not enough data to render this plot, please adjust the filters",
+                        id="no-data-alert-bank22",
+                        color="warning",
+                        style={"display": "none"},
+                    ),
+                    dcc.Graph(id="bank-sample22"),
+                ],
+                type="default",
+            )
+        ],
+        style={"marginTop": 0, "marginBottom": 0},
+    ),
+]
+
 TOP_BIGRAM_PLOT = [
     dbc.CardHeader(html.H5("Top bigrams found in the database")),
     dbc.CardBody(
@@ -797,6 +823,13 @@ BODY = dbc.Container(
             [
                 dbc.Col(LEFT_COLUMN, md=5, align="center"),
                 dbc.Col(dbc.Card(TOP_BANKS_PLOT), md=7),
+            ],
+            style={"marginTop": 30},
+        ),
+        dbc.Row(
+            [
+                dbc.Col(LEFT_COLUMN2, md=5, align="center"),
+                dbc.Col(dbc.Card(TOP_BANKS_PLOT2), md=7),
             ],
             style={"marginTop": 30},
         ),
@@ -964,6 +997,47 @@ def populate_bank_dropdown(time_values):
     return [{"label": "IMDB", "value": "IMDB"}, {"label": "Filmweb", "value": "Filmweb"}]
     # return make_options_bank_drop(bank_names)
 
+
+@app.callback(
+    Output("bank-drop22", "options"),
+    [Input("time-window-slider22", "value")],
+)
+def populate_bank_dropdown2(time_values):
+    """ TODO """
+    print("bank-drop: TODO USE THE TIME VALUES AND N-SLIDER TO LIMIT THE DATASET")
+    if time_values is not None:
+        pass
+    # n_value += 1
+    bank_names, counts = get_complaint_count_by_company(GLOBAL_DF)
+    # print(bank_names,  counts)
+    counts.append(1)
+    # print('HOHOHO')
+    # print(make_options_bank_drop(bank_names))
+    return [{"label": "IMDB", "value": "imdb"}, {"label": "Filmweb", "value": "filmweb"}]
+    # return make_options_bank_drop(bank_names
+
+@app.callback(
+    Output("bank-drop23", "options"),
+    [Input("time-window-slider22", "value")],
+)
+def populate_bank_dropdown3(time_values):
+    """ TODO """
+    print("bank-drop: TODO USE THE TIME VALUES AND N-SLIDER TO LIMIT THE DATASET")
+    if time_values is not None:
+        pass
+    # n_value += 1
+    bank_names, counts = get_complaint_count_by_company(GLOBAL_DF)
+    # print(bank_names,  counts)
+    counts.append(1)
+    # print('HOHOHO')
+    # print(make_options_bank_drop(bank_names))
+    genres = ['action','adventure','animation','biography','comedy','crime','documentary','drama','family','fantasy','horror','music','musical','romance','sci-fi','short','thriller','war','western']
+    dropdown = []
+    for genre in genres:
+        dropdown.append({"label": genre, "value": genre})
+    return dropdown
+    # return make_options_bank_drop(bank_names
+
 @app.callback(
     Output("bank-drop2", "options"),
     [Input("time-window-slider", "value")],
@@ -1129,6 +1203,34 @@ def update_wordcloud_plot(value_drop, time_values, dataset, genre):
     # print(wordcloud)
     return (wordcloud, frequency_figure, treemap, alert_style)
 
+@app.callback(
+    [Output("bank-sample22", "figure"), Output("no-data-alert-bank22", "style")],
+    [Input("bank-drop22", "value"), Input("bank-drop23", "value")],
+)
+def update_bank_sample_plot(dataset, genre):
+
+    x = pd.read_csv('./data_tfidf/' + genre + '_' + dataset +'.csv')['keyword'].tolist()
+    y = pd.read_csv('./data_tfidf/' + genre + '_' + dataset +'.csv')['tf-idf'].tolist()
+
+    data = [
+        {
+            # "x": values_sample,
+            # "y": counts_sample,
+            "x": x,
+            "y": y,
+            "text": x,
+            "textposition": "auto",
+            "type": "bar",
+            "name": "",
+        }
+    ]
+    layout = {
+        "autosize": False,
+        "margin": dict(t=10, b=10, l=40, r=0, pad=4),
+        "xaxis": {"showticklabels": False},
+    }
+    print("redrawing bank-sample...done")
+    return [{"data": data, "layout": layout}, {"display": "none"}]
 
 @app.callback(
     [Output("lda-table", "filter_query"), Output("lda-table-block", "style")],
