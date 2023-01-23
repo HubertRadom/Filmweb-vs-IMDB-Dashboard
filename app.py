@@ -11,7 +11,6 @@ import plotly.graph_objs as go
 import plotly.express as px
 import pandas as pd
 import numpy as np
-from precomputing import add_stopwords
 from dash.dependencies import Output, Input, State
 from dateutil import relativedelta
 from wordcloud import WordCloud, STOPWORDS
